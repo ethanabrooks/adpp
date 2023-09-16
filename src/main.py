@@ -74,7 +74,7 @@ def check_dirty():
     assert not Repo(".").is_dirty()
 
 
-parsers = dict(config=option("config", default="full_history"))
+parsers = dict(config=option("config", default="ad"))
 
 
 @tree.subcommand(parsers=dict(name=argument("name"), **parsers))
