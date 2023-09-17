@@ -119,8 +119,7 @@ class Rollout:
         assert [*logits.shape] == [N, net.context_size, 1 + dataset.n_tokens]
 
         # access action logits
-        logits = logits[:, :-1]  # exclude reward prediction
-        logits = logits[:, -A:]  # only consider last action
+        logits = logits[:, -A - 1 : -1]  # only consider last action
 
         # sample action
         probs = logits.softmax(dim=-1)
