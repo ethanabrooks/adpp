@@ -72,6 +72,15 @@ class Evaluator:
         return Rollout(*args, **kwargs)
 
 
+@dataclass(frozen=True)
+class Step:
+    action: np.ndarray
+    reward: np.ndarray
+    observation: np.ndarray
+    done: np.ndarray
+    info: list[dict]
+
+
 @dataclass
 class Rollout:
     dataset: Data
@@ -171,9 +180,14 @@ class Rollout:
             assert [*ctx.shape] == [N, (t + 1) * dataset.step_dim]
             pad_size = 1 + self.net.context_size - ctx.numel() // N
             ctx = F.pad(ctx, (pad_size, 0), value=dataset.pad_value)
-            action = self.get_action(ctx)
-            action = clamp(action, self.envs.action_space)
-            observation, reward, done, info = envs.step(action.squeeze(0).cpu().numpy())
+            step = self.step(ctx)
+
+            observation = step.observation
+            reward = step.reward
+            done = step.done
+            info = step.info
+            action = step.action
+
             assert [*observation.shape] == [N, O]
             assert [*reward.shape] == [N]
             assert [*done.shape] == [N]
@@ -195,3 +209,13 @@ class Rollout:
                     episode_rewards[n] = 0
                     episode_t[n] = 0
                     observation[n] = envs.reset(n)
+
+    def step(self, ctx: torch.Tensor):
+        action = self.get_action(ctx)
+        action = clamp(action, self.envs.action_space)
+        observation, reward, done, info = self.envs.step(
+            action.squeeze(0).cpu().numpy()
+        )
+        return Step(
+            action=action, reward=reward, observation=observation, done=done, info=info
+        )
