@@ -107,6 +107,11 @@ class Rollout:
         self.actions = torch.zeros(N, T, A).cuda()
         self.rewards = torch.zeros(N, T).cuda()
 
+    def get_action(self, ctx: torch.Tensor) -> torch.Tensor:
+        A = get_dim(self.envs.action_space)
+        [action] = self.predict(ctx, indices=[-A - 1, -1])
+        return action
+
     def predict(self, ctx: torch.Tensor, indices: list[int]) -> torch.Tensor:
         dataset = self.dataset
         net = self.net
@@ -166,7 +171,7 @@ class Rollout:
             assert [*ctx.shape] == [N, (t + 1) * dataset.step_dim]
             pad_size = 1 + self.net.context_size - ctx.numel() // N
             ctx = F.pad(ctx, (pad_size, 0), value=dataset.pad_value)
-            [action] = self.predict(ctx, indices=[-A - 1, -1])
+            action = self.get_action(ctx)
             action = clamp(action, self.envs.action_space)
             observation, reward, done, info = envs.step(action.squeeze(0).cpu().numpy())
             assert [*observation.shape] == [N, O]
