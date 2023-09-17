@@ -118,27 +118,27 @@ class Rollout:
 
     def get_action(self, ctx: torch.Tensor) -> torch.Tensor:
         A = get_dim(self.envs.action_space)
-        [action] = self.predict(ctx, indices=[-A - 1, -1])
-        return action
+        return self.predict(ctx, start=-A - 1, end=-1)
 
-    def predict(self, ctx: torch.Tensor, indices: list[int]) -> torch.Tensor:
+    def predict(self, ctx: torch.Tensor, start: int, end: int) -> torch.Tensor:
         dataset = self.dataset
         net = self.net
         N = self.n_rollouts
-        assert indices == sorted(indices)
+        W = end - start
+        K = dataset.n_tokens + 1
 
-        for i, j in zip(indices, indices[1:]):
-            # pass through net
-            logits: torch.Tensor
-            logits, _ = net.forward(ctx)
-            assert [*logits.shape] == [N, net.context_size, 1 + dataset.n_tokens]
+        # pass through net
+        logits: torch.Tensor
+        logits, _ = net.forward(ctx)
+        assert [*logits.shape] == [N, net.context_size, 1 + dataset.n_tokens]
 
-            # sample action
-            probs = logits[:, i:j].softmax(dim=-1)
-            assert [*probs.shape] == [N, 1, dataset.n_tokens + 1]
-            prediction = torch.multinomial(probs.squeeze(1), num_samples=1)
-            yield prediction
-            ctx[:, i:j] = prediction
+        # sample action
+        probs = logits[:, start:end].softmax(dim=-1)
+
+        assert [*probs.shape] == [N, W, K]
+        probs = probs.reshape(N * W, K)
+        prediction = torch.multinomial(probs.squeeze(1), num_samples=1)
+        return prediction.reshape(N, W)
 
     def rollout(self):
         N = self.n_rollouts
