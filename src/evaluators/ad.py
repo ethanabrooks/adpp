@@ -107,24 +107,24 @@ class Rollout:
         self.actions = torch.zeros(N, T, A).cuda()
         self.rewards = torch.zeros(N, T).cuda()
 
-    def get_action(self, ctx: torch.Tensor) -> torch.Tensor:
+    def predict(self, ctx: torch.Tensor, indices: list[int]) -> torch.Tensor:
         dataset = self.dataset
         net = self.net
         N = self.n_rollouts
-        A = get_dim(self.envs.action_space)
+        assert indices == sorted(indices)
 
-        # pass through net
-        logits: torch.Tensor
-        logits, _ = net.forward(ctx)
-        assert [*logits.shape] == [N, net.context_size, 1 + dataset.n_tokens]
+        for i, j in zip(indices, indices[1:]):
+            # pass through net
+            logits: torch.Tensor
+            logits, _ = net.forward(ctx)
+            assert [*logits.shape] == [N, net.context_size, 1 + dataset.n_tokens]
 
-        # access action logits
-        logits = logits[:, -A - 1 : -1]  # only consider last action
-
-        # sample action
-        probs = logits.softmax(dim=-1)
-        assert [*probs.shape] == [N, 1, dataset.n_tokens + 1]
-        return torch.multinomial(probs.squeeze(1), num_samples=1)
+            # sample action
+            probs = logits[:, i:j].softmax(dim=-1)
+            assert [*probs.shape] == [N, 1, dataset.n_tokens + 1]
+            prediction = torch.multinomial(probs.squeeze(1), num_samples=1)
+            yield prediction
+            ctx[:, i:j] = prediction
 
     def rollout(self):
         N = self.n_rollouts
@@ -166,7 +166,7 @@ class Rollout:
             assert [*ctx.shape] == [N, (t + 1) * dataset.step_dim]
             pad_size = 1 + self.net.context_size - ctx.numel() // N
             ctx = F.pad(ctx, (pad_size, 0), value=dataset.pad_value)
-            action = self.get_action(ctx)
+            [action] = self.predict(ctx, indices=[-A - 1, -1])
             action = clamp(action, self.envs.action_space)
             observation, reward, done, info = envs.step(action.squeeze(0).cpu().numpy())
             assert [*observation.shape] == [N, O]
