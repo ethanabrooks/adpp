@@ -2,7 +2,6 @@ from dataclasses import dataclass
 
 import numpy as np
 import torch
-import torch.nn.functional as F
 from gym.spaces import Discrete, MultiDiscrete, Space
 from tqdm import tqdm
 
@@ -91,9 +90,7 @@ class Rollout:
 
     def __post_init__(self):
         N = self.n_rollouts
-        T = self.dataset.episode_length * self.dataset.episodes_per_rollout
         O = get_dim(self.envs.observation_space)
-        A = get_dim(self.envs.action_space)
 
         # task
         task = torch.tensor(self.envs.get_task()).cuda()
@@ -109,12 +106,6 @@ class Rollout:
         O = get_dim(self.envs.observation_space)
         assert [*observation.shape] == [N, O]
         self.first_observation = observation
-
-        task_dim = get_dim(self.envs.task_space)
-        self.tasks = torch.zeros(N, T, task_dim).cuda()
-        self.observations = torch.zeros(N, T, O).cuda()
-        self.actions = torch.zeros(N, T, A).cuda()
-        self.rewards = torch.zeros(N, T).cuda()
 
     def get_action(self, ctx: torch.Tensor) -> torch.Tensor:
         A = get_dim(self.envs.action_space)
@@ -145,64 +136,61 @@ class Rollout:
             ctx[:, i] = prediction
 
     def rollout(self):
+        A = get_dim(self.envs.action_space)
         N = self.n_rollouts
         O = get_dim(self.envs.observation_space)
-        A = get_dim(self.envs.action_space)
+        S = self.dataset.step_dim
+        T = self.dataset.episode_length * self.dataset.episodes_per_rollout
+        W = self.net.context_size
         envs = self.envs
         dataset = self.dataset
         observation = self.first_observation
 
-        # actions
+        # dummies
         dummy_action = torch.tensor(dataset.pad_value).repeat(N, A).cuda()
-
-        # reward
-        dummy_reward = torch.tensor(dataset.pad_value).repeat(N, 1).cuda()
+        dummy_reward = torch.tensor(dataset.pad_value).repeat(N).cuda()
 
         T = dataset.episode_length * dataset.episodes_per_rollout
-        tasks = self.tasks
-        observations = self.observations
-        actions = self.actions
-        rewards = self.rewards
         episode_count = np.zeros(N, dtype=int)
         episode_rewards = np.zeros((N, dataset.episode_length))
         episode_t = np.zeros(N, dtype=int)
+        ctx = torch.full(
+            (N, W + T * S),
+            dataset.pad_value,
+            dtype=torch.long,
+            device="cuda",
+        )
 
         for t in tqdm(range(T)):
-            tasks[:, t] = self.task
-            observations[:, t] = torch.tensor(observation).cuda()
-
             # create sequence
-            sequence = [
-                tasks[:, : t + 1],
-                observations[:, : t + 1],
-                torch.cat([actions[:, :t], dummy_action[:, None]], dim=1),
-                torch.cat([rewards[:, :t], dummy_reward], dim=1),
-            ]
+            observation = torch.tensor(observation).cuda()
 
             ## create context and pad
-            ctx = dataset.cat_sequence(*sequence)
-            assert [*ctx.shape] == [N, (t + 1) * dataset.step_dim]
-            pad_size = 1 + self.net.context_size - ctx.numel() // N
-            ctx = F.pad(ctx, (pad_size, 0), value=dataset.pad_value)
-            step = self.step(ctx)
+            end = t + W + 1
+            start = end - S
+            ctx[:, start:end] = self.dataset.cat_sequence(
+                self.task, observation, dummy_action, dummy_reward
+            )
 
+            step = self.step(ctx[:, t : t + W + 1])
+
+            assert [*step.observation.shape] == [N, O]
+            assert [*step.reward.shape] == [N]
+            assert [*step.done.shape] == [N]
+            assert len(step.info) == N
+
+            ctx[:, start:end] = self.dataset.cat_sequence(
+                self.task,
+                observation,
+                step.action.clone().detach().cuda(),
+                torch.tensor(step.reward).cuda(),
+            )
             observation = step.observation
-            reward = step.reward
-            done = step.done
-            info = step.info
-            action = step.action
-
-            assert [*observation.shape] == [N, O]
-            assert [*reward.shape] == [N]
-            assert [*done.shape] == [N]
-            assert len(info) == N
-            actions[:, t] = action
-            rewards[:, t] = torch.tensor(reward).cuda()
-            episode_rewards[np.arange(N), episode_t] = reward
+            episode_rewards[np.arange(N), episode_t] = step.reward
             episode_t += 1
 
             for n, (d, ec, er, et, i) in enumerate(
-                zip(done, episode_count, episode_rewards, episode_t, info)
+                zip(step.done, episode_count, episode_rewards, episode_t, step.info)
             ):
                 assert isinstance(d, (bool, np.bool_))
                 assert isinstance(i, dict)

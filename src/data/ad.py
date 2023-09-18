@@ -128,7 +128,7 @@ class Data(data.base.Data):
             [goals, observations, actions, rewards[..., None]],
             dim=-1,
         )
-        n_data, _, _ = data.shape
+        n_data, *_ = data.shape
         return data.long().reshape(n_data, -1).contiguous()
 
     def collect_data(self, grid_world: ValueIteration, **kwargs):

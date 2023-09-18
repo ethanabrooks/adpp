@@ -16,7 +16,6 @@ class Evaluator(evaluators.ad.Evaluator):
 @dataclass
 class PlanningRollout(evaluators.ad.Rollout):
     first_observation: torch.Tensor
-    tasks: torch.Tensor
     observations: torch.Tensor
     actions: torch.Tensor
     rewards: torch.Tensor
