@@ -118,13 +118,12 @@ class Rollout:
 
     def get_action(self, ctx: torch.Tensor) -> torch.Tensor:
         A = get_dim(self.envs.action_space)
-        return self.predict(ctx, start=-A - 1, end=-1)
+        return torch.stack(list(self.predict_many(ctx, start=-A - 1, end=-1)), dim=-1)
 
-    def predict(self, ctx: torch.Tensor, start: int, end: int) -> torch.Tensor:
+    def predict(self, ctx: torch.Tensor, i: int) -> torch.Tensor:
         dataset = self.dataset
         net = self.net
         N = self.n_rollouts
-        W = end - start
         K = dataset.n_tokens + 1
 
         # pass through net
@@ -133,12 +132,17 @@ class Rollout:
         assert [*logits.shape] == [N, net.context_size, 1 + dataset.n_tokens]
 
         # sample action
-        probs = logits[:, start:end].softmax(dim=-1)
+        probs = logits[:, i].softmax(dim=-1)
 
-        assert [*probs.shape] == [N, W, K]
-        probs = probs.reshape(N * W, K)
-        prediction = torch.multinomial(probs.squeeze(1), num_samples=1)
-        return prediction.reshape(N, W)
+        assert [*probs.shape] == [N, K]
+        [prediction] = torch.multinomial(probs, num_samples=1).T
+        return prediction
+
+    def predict_many(self, ctx: torch.Tensor, start: int, end: int):
+        for i in range(start, end):
+            prediction = self.predict(ctx, i)
+            yield prediction
+            ctx[:, i] = prediction
 
     def rollout(self):
         N = self.n_rollouts
