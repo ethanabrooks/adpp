@@ -5,5 +5,9 @@
     "python.analysis.extraPaths": [
         "./src"
     ],
-    "python.formatting.provider": "none",
+    "files.watcherExclude": {
+        "**/.git/objects/**": true,
+        "**/.git/subtree-cache/**": true,
+        "**/.direnv/*/**": true
+      }
 }
