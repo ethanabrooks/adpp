@@ -280,3 +280,7 @@ class GridWorld:
         plt.yticks(np.arange(N))
         plt.gca().invert_yaxis()
         plt.savefig(f"policy{task_idx}.png")
+
+
+# whitelist
+GridWorld.visualize_policy
