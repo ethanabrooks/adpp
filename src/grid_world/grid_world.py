@@ -285,3 +285,4 @@ class GridWorld:
 
 # whitelist
 GridWorld.visualize_policy
+GridWorld.create_exploration_policy
