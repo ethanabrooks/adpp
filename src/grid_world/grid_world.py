@@ -176,7 +176,7 @@ class GridWorld:
 
             # Store the current current_states and rewards
             states[:, t] = current_states
-            actions[:, t] = torch.stack([A, A], -1)
+            actions[:, t] = torch.stack([A // 3, A % 3], -1)
             rewards[:, t] = R
             done[:, t] = D
 
