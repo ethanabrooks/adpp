@@ -13,6 +13,7 @@ import data
 from data import Step
 from encoder import LongEncoder, MultiEncoder, OffsetEncoder
 from grid_world.env import Env
+from grid_world.grid_world import DELTAS
 from grid_world.value_iteration import ValueIteration
 from plot import plot_eval_metrics
 from pretty import console, render_eval_metrics
@@ -284,8 +285,6 @@ class Data(data.Data):
         actions: np.ndarray,
         rewards: np.ndarray,
     ):
-        deltas = np.array([[-1, 0], [1, 0], [0, -1], [0, 1]])
-
         x, y = states.T
 
         # Using indices as the parameter
@@ -334,7 +333,7 @@ class Data(data.Data):
                 ax.arrow(
                     xi,
                     yi,
-                    *(0.1 * deltas[int(action)]),
+                    *(0.1 * DELTAS[int(action)]),
                     head_width=0.1,
                     head_length=0.2,
                     fc=color,

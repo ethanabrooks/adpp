@@ -4,6 +4,19 @@ import torch
 import torch.nn.functional as F
 from tqdm import tqdm
 
+DELTAS = torch.tensor(
+    [
+        [-1, -1],
+        [-1, 0],
+        [-1, 1],
+        [1, -1],
+        [1, 0],
+        [1, -1],
+        [0, -1],
+        [0, 1],
+    ]
+)
+
 
 class GridWorld:
     def __init__(
@@ -26,12 +39,11 @@ class GridWorld:
         self.states = torch.tensor(
             [[i, j] for i in range(grid_size) for j in range(grid_size)]
         )
-        self.deltas = torch.tensor([[-1, 0], [1, 0], [0, -1], [0, 1]])
         self.n_tasks = n_tasks
         self.goals = self.sample_goals(n_tasks)
 
         # Compute next states for each action and state for each batch (goal)
-        next_states = self.states[:, None] + self.deltas[None, :]
+        next_states = self.states[:, None] + DELTAS[None, :]
         next_states = torch.clamp(next_states, 0, self.grid_size - 1)
         S_ = (
             next_states[..., 0] * self.grid_size + next_states[..., 1]
@@ -51,14 +63,14 @@ class GridWorld:
         self.T = F.one_hot(S_, num_classes=self.n_states).float()
         if dense_reward:
             distance = (self.goals[:, None] - self.states[None]).abs().sum(-1)
-            R = -distance.float()[..., None].tile(1, 1, len(self.deltas))
+            R = -distance.float()[..., None].tile(1, 1, len(DELTAS))
         else:
-            R = is_goal.float()[..., None].tile(1, 1, len(self.deltas))
+            R = is_goal.float()[..., None].tile(1, 1, len(DELTAS))
         self.R = F.pad(R, padding, value=0)  # Insert row for absorbing state
 
     def check_actions(self, actions: torch.Tensor):
         B = self.n_tasks
-        A = len(self.deltas)
+        A = len(DELTAS)
         assert [*actions.shape] == [B]
         assert actions.max() < A
         assert 0 <= actions.min()
@@ -66,7 +78,7 @@ class GridWorld:
     def check_pi(self, Pi: torch.Tensor):
         B = self.n_tasks
         N = self.n_states
-        A = len(self.deltas)
+        A = len(DELTAS)
         assert [*Pi.shape] == [B, N, A]
 
     def check_states(self, states: torch.Tensor):
@@ -127,7 +139,7 @@ class GridWorld:
     ):
         B = self.n_tasks
         N = self.n_states
-        A = len(self.deltas)
+        A = len(DELTAS)
         assert [*Pi.shape] == [B, N, A]
 
         trajectory_length = self.episode_length * n_episodes

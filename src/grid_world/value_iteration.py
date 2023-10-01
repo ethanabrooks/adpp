@@ -4,7 +4,7 @@ import torch
 import torch.nn.functional as F
 from matplotlib import pyplot as plt
 
-from grid_world.grid_world import GridWorld
+from grid_world.grid_world import DELTAS, GridWorld
 
 
 class ValueIteration(GridWorld):
@@ -28,11 +28,11 @@ class ValueIteration(GridWorld):
     ):
         B = self.n_tasks
         N = self.grid_size**2 + 1
-        A = len(self.deltas)
+        A = len(DELTAS)
         states = torch.tensor(
             [[i, j] for i in range(self.grid_size) for j in range(self.grid_size)]
         )
-        alpha = torch.ones(4)
+        alpha = torch.ones(len(DELTAS))
         Pi = (
             torch.distributions.Dirichlet(alpha)
             .sample((n_policies, N))
@@ -41,7 +41,7 @@ class ValueIteration(GridWorld):
         self.check_pi(Pi)
 
         # Compute next states for each action and state for each batch (goal)
-        next_states = states[:, None] + self.deltas[None, :]
+        next_states = states[:, None] + DELTAS[None, :]
         next_states = torch.clamp(next_states, 0, self.grid_size - 1)
         S_ = (
             next_states[..., 0] * self.grid_size + next_states[..., 1]
@@ -74,7 +74,7 @@ class ValueIteration(GridWorld):
 
         B = self.n_tasks
         N = self.n_states
-        A = len(self.deltas)
+        A = len(DELTAS)
         assert [*Pi.shape] == [B, N, A]
 
         # Compute the policy conditioned transition function

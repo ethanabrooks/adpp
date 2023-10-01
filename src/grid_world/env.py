@@ -4,7 +4,7 @@ import torch
 from gym.spaces import Discrete, MultiDiscrete
 
 from envs.base import Env
-from grid_world.grid_world import GridWorld
+from grid_world.grid_world import DELTAS, GridWorld
 
 
 class Env(GridWorld, Env):
@@ -15,7 +15,7 @@ class Env(GridWorld, Env):
 
     @property
     def action_space(self):
-        return Discrete(len(self.deltas))
+        return Discrete(len(DELTAS))
 
     @property
     def observation_space(self):
@@ -33,7 +33,7 @@ class Env(GridWorld, Env):
         self.current_state = self.reset_fn()
         [s] = self.current_state
         self.t = 0
-        distance = torch.abs(self.get_task() - s).sum()
+        distance = torch.abs(self.get_task() - s).max()
         if self.dense_reward:
             descending = list(range(-distance, 0))
             self.optimal = descending + [0.0] * (self.episode_length - distance)
