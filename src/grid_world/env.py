@@ -1,5 +1,4 @@
-from typing import Union
-
+import numpy as np
 import torch
 from gym.spaces import Discrete, MultiDiscrete
 
@@ -43,10 +42,8 @@ class Env(GridWorld, Env):
             )
         return s.numpy()
 
-    def step(self, action: Union[torch.Tensor, int]):
-        if isinstance(action, int):
-            action = torch.tensor([action])
-        action = action.reshape(1)
+    def step(self, action: np.ndarray):
+        action = action[:1]
         self.current_state, [r], d, i = self.step_fn(self.current_state, action, self.t)
         [s] = self.current_state
         self.t += 1

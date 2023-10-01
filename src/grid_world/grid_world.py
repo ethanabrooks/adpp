@@ -151,7 +151,7 @@ class GridWorld:
 
         trajectory_length = self.episode_length * n_episodes
         states = torch.zeros((B, trajectory_length, 2), dtype=torch.int)
-        actions = torch.zeros((B, trajectory_length), dtype=torch.int)
+        actions = torch.zeros((B, trajectory_length, 2), dtype=torch.int)
         rewards = torch.zeros((B, trajectory_length))
         done = torch.zeros((B, trajectory_length), dtype=torch.bool)
         current_states = self.reset_fn()
@@ -176,7 +176,7 @@ class GridWorld:
 
             # Store the current current_states and rewards
             states[:, t] = current_states
-            actions[:, t] = A
+            actions[:, t] = torch.stack([A, torch.zeros_like(A)], -1)
             rewards[:, t] = R
             done[:, t] = D
 
@@ -186,7 +186,7 @@ class GridWorld:
         return (
             self.goals[:, None].expand_as(states),
             states,
-            actions[..., None],
+            actions,
             rewards,
             done,
         )

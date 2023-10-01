@@ -125,7 +125,8 @@ class Data(data.Data):
     def dims(self):
         _, _, goal_dim = self.tasks.shape
         _, _, obs_dim = self.observations.shape
-        return Step(tasks=goal_dim, observations=obs_dim, actions=1, rewards=1)
+        _, _, act_dim = self.actions.shape
+        return Step(tasks=goal_dim, observations=obs_dim, actions=act_dim, rewards=1)
 
     @property
     def encoder(self):
@@ -322,7 +323,7 @@ class Data(data.Data):
         norm = plt.Normalize(vmin=min(rewards), vmax=max(rewards))
 
         # Draw arrows based on the deltas
-        for action, reward, xi, yi in np.concatenate(
+        for action, _, reward, xi, yi in np.concatenate(
             [actions, rewards[..., None], states], axis=1
         ):
             if action is not None:
