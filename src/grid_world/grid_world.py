@@ -4,18 +4,25 @@ import torch
 import torch.nn.functional as F
 from tqdm import tqdm
 
-DELTAS = torch.tensor(
-    [
-        [-1, -1],
-        [-1, 0],
-        [-1, 1],
-        [1, -1],
-        [1, 0],
-        [1, -1],
-        [0, -1],
-        [0, 1],
-    ]
-)
+DELTAS = torch.stack(
+    torch.meshgrid(torch.arange(-1, 2), torch.arange(-1, 2), indexing="ij"), -1
+).view(9, 2)
+
+
+def convert_1d_to_2d(x: torch.Tensor):
+    return DELTAS[x]
+
+
+def convert_2d_to_1d(x: torch.Tensor):
+    x = torch.clamp(x, -1, 1)
+    i, j = torch.split(x + 1, 1, -1)
+    return (3 * i + j)[..., 0].long()
+
+
+test_ints = torch.randint(0, 9, (10,))
+deltas2d = convert_1d_to_2d(test_ints)
+deltas1d = convert_2d_to_1d(deltas2d)
+assert torch.equal(test_ints, deltas1d)
 
 
 class GridWorld:
