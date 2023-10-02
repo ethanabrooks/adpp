@@ -43,7 +43,6 @@ class Env(GridWorld, Env):
         return s.numpy()
 
     def step(self, action: np.ndarray):
-        action = np.clip(action, 0, 2)
         action = 3 * action[:1] + action[1:]
         self.current_state, [r], d, i = self.step_fn(self.current_state, action, self.t)
         [s] = self.current_state
