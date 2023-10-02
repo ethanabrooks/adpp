@@ -1,9 +1,9 @@
 import numpy as np
 import torch
-from gym.spaces import Discrete, MultiDiscrete
+from gym.spaces import MultiDiscrete
 
 from envs.base import Env
-from grid_world.grid_world import DELTAS, GridWorld
+from grid_world.grid_world import GridWorld
 
 
 class Env(GridWorld, Env):
@@ -14,7 +14,7 @@ class Env(GridWorld, Env):
 
     @property
     def action_space(self):
-        return Discrete(len(DELTAS))
+        return MultiDiscrete([2, 2])
 
     @property
     def observation_space(self):
