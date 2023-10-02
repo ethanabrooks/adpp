@@ -30,6 +30,7 @@ class Data(data.Data):
         self,
         alpha: float,
         dense_reward: bool,
+        episode_length: int,
         grid_size: int,
         grid_world_args: dict,
         heldout_tasks: list[tuple[int, int]],
@@ -41,6 +42,7 @@ class Data(data.Data):
         value_iteration_args: dict,
         yield_every: int,
     ):
+        self._episode_length = episode_length
         self.dense_reward = dense_reward
         self.grid_size = grid_size
         self.heldout_goals = heldout_tasks
@@ -134,7 +136,7 @@ class Data(data.Data):
 
     @property
     def episode_length(self):
-        return 1 + self.grid_size**2
+        return self._episode_length
 
     @property
     def episodes_per_rollout(self):
