@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-from gym.spaces import MultiDiscrete
+from gym.spaces import Box, MultiDiscrete
 
 from envs.base import Env
 from grid_world.grid_world import GridWorld
@@ -14,7 +14,7 @@ class Env(GridWorld, Env):
 
     @property
     def action_space(self):
-        return MultiDiscrete([2, 2])
+        return Box(low=-1.0, high=1.0, shape=(2,))
 
     @property
     def observation_space(self):
@@ -43,6 +43,7 @@ class Env(GridWorld, Env):
         return s.numpy()
 
     def step(self, action: np.ndarray):
+        action += 1
         action = 3 * action[:1] + action[1:]
         self.current_state, [r], d, i = self.step_fn(self.current_state, action, self.t)
         [s] = self.current_state
