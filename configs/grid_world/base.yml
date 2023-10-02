@@ -10,12 +10,12 @@ data_args:
   alpha: 0.5
   dense_reward: false
   grid_world_args:
-    absorbing_state: true
+    absorbing_state: false
     atol: 0.2
     gamma: 0.99
     seed: ${seed}
   heldout_tasks: [[0, 0]]
-  include_goal: false
+  include_goal: true
   mask_nonactions: false
   n_data: 100_000
   n_episodes: 1
