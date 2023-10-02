@@ -60,20 +60,16 @@ class GridWorld:
         is_goal = (self.goals[:, None] == self.states[None]).all(-1)
 
         # Modify transition to go to absorbing state if the next state is a goal
-        absorbing_state_idx = self.n_states - 1
         S_ = S_[None].tile(self.n_tasks, 1, 1)
-        S_[is_goal[..., None].expand_as(S_)] = absorbing_state_idx
 
         # Insert row for absorbing state
-        padding = (0, 0, 0, 1)  # left 0, right 0, top 0, bottom 1
-        S_ = F.pad(S_, padding, value=absorbing_state_idx)
         self.T = F.one_hot(S_, num_classes=self.n_states).float()
         if dense_reward:
             distance = (self.goals[:, None] - self.states[None]).abs().sum(-1)
             R = -distance.float()[..., None].tile(1, 1, len(DELTAS))
         else:
             R = is_goal.float()[..., None].tile(1, 1, len(DELTAS))
-        self.R = F.pad(R, padding, value=0)  # Insert row for absorbing state
+        self.R = R
 
     def check_actions(self, actions: torch.Tensor):
         B = self.n_tasks
@@ -134,7 +130,6 @@ class GridWorld:
 
         # Flatten the 2D policy tensor to 1D
         policy = policy_2d.view(N * N, 4)
-        policy = F.pad(policy, (0, 0, 0, 1), value=0)  # Insert row for absorbing state
         policy[-1, 0] = 1  # last state is terminal
         # self.visualize_policy(policy[None].tile(self.n_tasks, 1, 1))
         return policy
@@ -193,7 +188,7 @@ class GridWorld:
 
     @property
     def n_states(self):
-        return self.grid_size**2 + 1
+        return self.grid_size**2
 
     def reset_fn(self):
         array = self.random.choice(self.grid_size, size=(self.n_tasks, 2))
