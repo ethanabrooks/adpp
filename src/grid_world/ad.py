@@ -74,7 +74,8 @@ class Data(data.Data):
             return expand_as(~done, component).roll(dims=[1], shifts=[1])
 
         rewards_mask = torch.ones_like(done)
-        rewards_mask[:, : self.episode_length] = False
+        rewards_mask[:, : self.episode_length - 1] = False
+        rewards_mask[:, self.episode_length :] = False
         masks = Step(
             tasks=make_mask(components.tasks),
             observations=make_mask(components.observations),
@@ -88,6 +89,12 @@ class Data(data.Data):
                 observations=torch.zeros_like(masks.observations),
                 rewards=torch.zeros_like(masks.rewards),
             )
+        masks = Step(
+            tasks=torch.zeros_like(masks.tasks),
+            observations=torch.zeros_like(masks.observations),
+            actions=torch.zeros_like(masks.actions),
+            rewards=masks.rewards,
+        )
 
         self.tasks = components.tasks
         self.observations = components.observations
@@ -102,6 +109,11 @@ class Data(data.Data):
 
         data = data.reshape(n_data, -1, self.step_dim)
         mask = mask.reshape(n_data, -1, self.step_dim)
+
+        # data = data[:2, 3:5]
+        # mask = mask[:2, 3:5]
+        # self.n_data = n_data = 2
+
         _, self.steps_per_row, _ = data.shape
         self.unpadded_data = data
         assert [*self.unpadded_data.shape] == [
