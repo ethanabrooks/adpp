@@ -74,7 +74,7 @@ class Data(data.Data):
             return expand_as(~done, component).roll(dims=[1], shifts=[1])
 
         rewards_mask = torch.ones_like(done)
-        rewards_mask[:, : -self.episode_length // 2] = False
+        rewards_mask[:, : -self.episode_length] = False
         masks = Step(
             tasks=make_mask(components.tasks),
             observations=make_mask(components.observations),
