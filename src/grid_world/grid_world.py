@@ -17,7 +17,7 @@ class GridWorld:
         heldout_goals: list[tuple[int, int]],
         n_tasks: int,
         seed: int,
-        terminate_on_goal: bool,
+        terminate_after_goal: int,
         use_heldout_goals: bool,
     ):
         super().__init__()
@@ -27,7 +27,7 @@ class GridWorld:
         self.grid_size = grid_size
         self.heldout_goals = heldout_goals
         self.random = np.random.default_rng(seed)
-        self.terminate_on_goal = terminate_on_goal
+        self.terminate_after_goal = terminate_after_goal
         self.use_heldout_goals = use_heldout_goals
 
         self.states = torch.tensor(
@@ -156,6 +156,7 @@ class GridWorld:
         done = torch.zeros((B, trajectory_length), dtype=torch.bool)
         current_states = self.reset_fn()
         time_step = torch.zeros((B))
+        t_since_goal = -torch.ones((B))
 
         for t in tqdm(range(trajectory_length), desc="Sampling trajectories"):
             # Convert current current_states to indices
@@ -170,7 +171,9 @@ class GridWorld:
                 .long()
             )
 
-            next_states, R, D, _ = self.step_fn(current_states, A, time_step)
+            (next_states, t_since_goal), R, D, _ = self.step_fn(
+                current_states, A, time_step, t_since_goal
+            )
             next_states_on_reset = self.reset_fn()
             next_states[D] = next_states_on_reset[D]
 
@@ -233,6 +236,7 @@ class GridWorld:
         states: torch.Tensor,
         actions: torch.Tensor,
         time_step: torch.Tensor,
+        t_since_goal: torch.Tensor,
     ):
         self.check_states(states)
         self.check_actions(actions)
@@ -257,9 +261,14 @@ class GridWorld:
             dim=1,
         )
         done = time_step + 1 == self.episode_length
-        if self.terminate_on_goal:
-            done = done | (states == self.goals).all(-1)
-        return next_states, rewards, done, {}
+        at_goal = (states == self.goals).all(-1)
+        reached_goal = t_since_goal >= 0
+        first_t_at_goal = ~reached_goal & at_goal
+        t_since_goal = first_t_at_goal * 0 + ~first_t_at_goal * t_since_goal
+        t_since_goal = ~reached_goal * t_since_goal + reached_goal * (t_since_goal + 1)
+        if self.terminate_after_goal >= 0:
+            done = done | (t_since_goal >= self.terminate_after_goal)
+        return (next_states, t_since_goal), rewards, done, {}
 
     def visualize_policy(self, Pi, task_idx: int = 0):
         N = self.grid_size
