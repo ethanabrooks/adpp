@@ -73,11 +73,13 @@ class Data(data.Data):
         def make_mask(component: torch.Tensor):
             return expand_as(~done, component).roll(dims=[1], shifts=[1])
 
+        rewards_mask = torch.ones_like(done)
+        rewards_mask[:, : self.episode_length] = False
         masks = Step(
             tasks=make_mask(components.tasks),
             observations=make_mask(components.observations),
             actions=torch.ones_like(components.actions),
-            rewards=make_mask(components.rewards),
+            rewards=rewards_mask,
         )
         if mask_nonactions:
             masks = replace(
