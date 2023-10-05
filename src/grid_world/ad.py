@@ -128,6 +128,7 @@ class Data(data.Data):
 
     def __getitem__(self, idx):
         i, j = self.index_1d_to_2d(idx)
+        j += 1
         jj = slice(j, j + self.steps_per_context)
         return self.data[i, jj].view(-1), self.mask[i, jj].view(-1)
 
