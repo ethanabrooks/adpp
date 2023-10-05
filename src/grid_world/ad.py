@@ -77,7 +77,7 @@ class Data(data.Data):
             tasks=make_mask(components.tasks),
             observations=make_mask(components.observations),
             actions=torch.ones_like(components.actions),
-            rewards=torch.ones_like(components.rewards),
+            rewards=make_mask(components.rewards),
         )
         if mask_nonactions:
             masks = replace(
