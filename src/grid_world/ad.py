@@ -110,9 +110,9 @@ class Data(data.Data):
         data = data.reshape(n_data, -1, self.step_dim)
         mask = mask.reshape(n_data, -1, self.step_dim)
 
-        # data = data[:2, 3:5]
-        # mask = mask[:2, 3:5]
-        # self.n_data = n_data = 2
+        data = data[:2, 3:5]
+        mask = mask[:2, 3:5]
+        self.n_data = n_data = 2
 
         _, self.steps_per_row, _ = data.shape
         self.unpadded_data = data
