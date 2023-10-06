@@ -173,8 +173,6 @@ class GPT(nn.Module):
         self.ln_f = nn.LayerNorm(n_embd)
         self.mlp = nn.Sequential(
             nn.Linear(context_size * n_embd, context_size * n_embd),
-            nn.ReLU(),
-            nn.Linear(context_size * n_embd, context_size * n_embd),
         )
         self.head2 = nn.Linear(n_embd, n_tokens + 1, bias=False)
         self.head = EinLinear(step_dim, n_embd, n_tokens + 1, bias=False)
