@@ -171,6 +171,11 @@ class GPT(nn.Module):
         )
         # decoder head
         self.ln_f = nn.LayerNorm(n_embd)
+        self.mlp = nn.Sequential(
+            nn.Linear(context_size * n_embd, context_size * n_embd),
+            nn.ReLU(),
+            nn.Linear(context_size * n_embd, context_size * n_embd),
+        )
         self.head2 = nn.Linear(n_embd, n_tokens + 1, bias=False)
         self.head = EinLinear(step_dim, n_embd, n_tokens + 1, bias=False)
 
@@ -251,10 +256,12 @@ class GPT(nn.Module):
             :, :t, :
         ]  # each position maps to a (learnable) vector
         ## [ B x T x embedding_dim ]
-        x = self.drop(token_embeddings + position_embeddings)
-        x = self.blocks(x)
+        # x = self.drop(token_embeddings + position_embeddings)
+        # x = self.blocks(x)
         ## [ B x T x embedding_dim ]
-        x = self.ln_f(x)
+        # x = self.ln_f(x)
+        x = self.mlp(token_embeddings.view(b, -1))
+        x = x.reshape(b, t, -1)
 
         ## [ (B * T' / transition_dim) x transition_dim x embedding_dim ]
         x_pad, n_pad = self.pad_to_full_observation(x)
