@@ -258,7 +258,7 @@ class GPT(nn.Module):
         x = self.blocks(x)
         ## [ B x T x embedding_dim ]
         x = self.ln_f(x)
-        x = self.mlp(x.view(b, -1))
+        # x = self.mlp(x.view(b, -1))
         x = x.reshape(b, t, -1)
 
         ## [ (B * T' / transition_dim) x transition_dim x embedding_dim ]
