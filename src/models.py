@@ -171,7 +171,7 @@ class GPT(nn.Module):
         )
         # decoder head
         self.ln_f = nn.LayerNorm(n_embd)
-        # self.head = nn.Linear(n_embd, vocab_size, bias=False)
+        self.head2 = nn.Linear(n_embd, n_tokens + 1, bias=False)
         self.head = EinLinear(step_dim, n_embd, n_tokens + 1, bias=False)
 
         self.vocab_size = n_tokens
@@ -259,7 +259,7 @@ class GPT(nn.Module):
         ## [ (B * T' / transition_dim) x transition_dim x embedding_dim ]
         x_pad, n_pad = self.pad_to_full_observation(x)
         ## [ (B * T' / transition_dim) x transition_dim x (vocab_size + 1) ]
-        logits = self.head(x_pad)
+        logits = self.head2(x_pad)
         ## [ B x T' x (vocab_size + 1) ]
         logits = logits.reshape(b, t + n_pad, self.vocab_size + 1)
         ## [ B x T x (vocab_size + 1) ]
