@@ -257,7 +257,7 @@ class GPT(nn.Module):
         ]  # each position maps to a (learnable) vector
         ## [ B x T x embedding_dim ]
         x = self.drop(token_embeddings + position_embeddings)
-        # x = self.blocks(x)
+        x = self.blocks(x)
         ## [ B x T x embedding_dim ]
         x = self.ln_f(x)
         x = self.mlp(x.view(b, -1))
