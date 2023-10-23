@@ -245,19 +245,19 @@ class GPT(nn.Module):
         b, t = inputs.size()
         assert t <= self._context_size, "Cannot forward, model block size is exhausted."
 
-        offset_idx = self.offset_tokens(inputs)
+        # offset_idx = self.offset_tokens(inputs)
         ## [ B x T x embedding_dim ]
         # forward the GPT model
         token_embeddings = self.tok_emb(
-            offset_idx
+            inputs
         )  # each index maps to a (learnable) vector
         ## [ 1 x T x embedding_dim ]
-        position_embeddings = self.pos_emb[
-            :, :t, :
-        ]  # each position maps to a (learnable) vector
+        # position_embeddings = self.pos_emb[
+        #     :, :t, :
+        # ]  # each position maps to a (learnable) vector
         ## [ B x T x embedding_dim ]
-        x = self.drop(token_embeddings + position_embeddings)
-        x = self.gpt2_model(inputs_embeds=x).last_hidden_state
+        # x = self.drop(token_embeddings + position_embeddings)
+        x = self.gpt2_model(inputs_embeds=token_embeddings).last_hidden_state
         ## [ B x T x embedding_dim ]
         x = self.ln_f(x)
         # x = self.mlp(x.view(b, -1))
