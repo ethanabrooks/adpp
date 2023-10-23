@@ -43,9 +43,9 @@ model_args:
   layer_args:
     causal_self_attention_args:
       attn_pdrop: 0.1
-      n_head: 4
     resid_pdrop: 0.1
   n_embd: 32
+  n_head: 4
   n_layer: 4
   steps_per_context: 100
 n_batch: 50

@@ -129,7 +129,7 @@ def train_with_envs(
 
     print("✓")
 
-    optimizer = configure(lr=lr, module=net, **optimizer_config)
+    optimizer = torch.optim.AdamW(net.parameters(), lr=lr)
 
     counter = Counter()
     n_tokens = 0

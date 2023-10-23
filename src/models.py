@@ -4,6 +4,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
+from transformers import GPT2Config, GPT2Model
 
 from encoder import Encoder
 
@@ -143,6 +144,7 @@ class GPT(nn.Module):
         embd_pdrop: float,
         layer_args: dict,
         n_embd: int,
+        n_head: int,
         n_layer: int,
         n_tokens: int,
         step_dim: int,
@@ -158,17 +160,17 @@ class GPT(nn.Module):
         self.pos_emb = nn.Parameter(torch.zeros(1, context_size, n_embd))
         self.drop = nn.Dropout(embd_pdrop)
         # transformer
-        self.blocks = nn.Sequential(
-            *[
-                TransformerLayer(
-                    context_size=context_size,
-                    **layer_args,
-                    n_embd=n_embd,
-                    step_dim=step_dim,
-                )
-                for _ in range(n_layer)
-            ]
+        # Use Huggingface's GPT2:
+        config = GPT2Config(
+            vocab_size=n_tokens + 1,
+            n_positions=context_size,
+            n_ctx=context_size,
+            n_embd=n_embd,
+            n_head=n_head,
+            n_layer=n_layer,
+            # Add other configuration parameters if needed
         )
+        self.gpt2_model = GPT2Model(config)
         # decoder head
         self.ln_f = nn.LayerNorm(n_embd)
         self.mlp = nn.Sequential(
@@ -255,7 +257,7 @@ class GPT(nn.Module):
         ]  # each position maps to a (learnable) vector
         ## [ B x T x embedding_dim ]
         x = self.drop(token_embeddings + position_embeddings)
-        x = self.blocks(x)
+        x = self.gpt2_model(inputs_embeds=x).last_hidden_state
         ## [ B x T x embedding_dim ]
         x = self.ln_f(x)
         # x = self.mlp(x.view(b, -1))
