@@ -17,7 +17,7 @@ import evaluators.adpp
 import wandb
 from data import Data
 from envs.parallel.subproc_vec_env import SubprocVecEnv
-from models import GPT
+from models import GPT, NextTokenPredictor
 from optimizer import configure, decay_lr
 from plot import plot_accuracy
 from pretty import Table
@@ -117,10 +117,9 @@ def train_with_envs(
     weights_args: dict,
 ) -> None:
     print("Create net... ", end="", flush=True)
-    net = GPT(
-        encoder=dataset.encoder,
-        n_tokens=dataset.n_tokens,
-        step_dim=dataset.step_dim,
+    net = NextTokenPredictor(
+        # encoder=dataset.encoder,
+        vocab_size=dataset.n_tokens + 1,
         **model_args,
     )
     if load_path is not None:
@@ -152,7 +151,7 @@ def train_with_envs(
             net.train()
             optimizer.zero_grad()
             weights = dataset.weights(sequence.shape, **weights_args)
-            logits, loss = net.forward(sequence, mask, weights)
+            logits, loss = net.forward(sequence, mask)
             if load_path is None:
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(net.parameters(), grad_norm_clip)
@@ -185,10 +184,7 @@ def train_with_envs(
 
                 # test
                 log_t = t // log_interval
-                if (
-                    test_adpp_interval is not None
-                    and (1 + log_t) % test_adpp_interval == 0
-                ):
+                if False:
                     adpp_log, fig = evaluate(
                         dataset=dataset,
                         envs=adpp_envs,
@@ -199,7 +195,7 @@ def train_with_envs(
                     )
                     log.update(fig)
                     log_table.print_header(row)
-                if log_t % test_ad_interval == 0:
+                if False:
                     ad_log, fig = evaluate(
                         dataset=dataset,
                         envs=ad_envs,
@@ -226,6 +222,7 @@ def train_with_envs(
                 if run is not None:
                     wandb.log(log, step=step)
                 plt.close()
+                log_table.print_header(row)
                 log_table.print_row(row)
 
             # save

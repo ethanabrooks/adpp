@@ -114,6 +114,7 @@ class Data(data.Data):
         mask = mask[:2, 3:5]
         data[1, 0, 5] = 1
         self.n_data = n_data = 2
+        data = data - data.min()
 
         _, self.steps_per_row, _ = data.shape
         self.unpadded_data = data

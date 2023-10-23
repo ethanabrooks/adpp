@@ -4,7 +4,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
-from transformers import GPT2Config, GPT2Model
+from transformers import GPT2Config, GPT2LMHeadModel, GPT2Model, GPT2Tokenizer
 
 from encoder import Encoder
 
@@ -239,6 +239,7 @@ class GPT(nn.Module):
         """
         inputs = sequence[:, :-1].contiguous()
         targets = sequence[:, 1:].contiguous()
+        original_inputs = inputs
 
         inputs = self.encoder.encode(inputs)
 
@@ -286,6 +287,8 @@ class GPT(nn.Module):
             if mask is not None:
                 mask = mask[:, 1:].contiguous()
                 loss = (loss * mask.view(-1)).mean()
+                # if inputs[mask == 1].unique().numel() > 1:
+                breakpoint()
 
         return logits, loss
 
@@ -293,3 +296,38 @@ class GPT(nn.Module):
         probs = logits.softmax(dim=-1)
         prediction = torch.multinomial(probs, num_samples=1)
         return self.encoder.decode(prediction)
+
+
+class NextTokenPredictor(nn.Module):
+    def __init__(self, vocab_size, n_embd=768, n_layer=12, n_head=12):
+        super(NextTokenPredictor, self).__init__()
+
+        # Initialize GPT-2 config
+        self.config = GPT2Config(
+            vocab_size=vocab_size, n_embd=n_embd, n_layer=n_layer, n_head=n_head
+        )
+
+        # Initialize GPT-2 model
+        self.gpt2 = GPT2LMHeadModel(self.config)
+
+    def forward(self, sequence, mask=None):
+        """
+        sequence: a batch of input sequences. Shape: [batch_size, seq_length]
+        mask: an optional attention mask. Shape: [batch_size, seq_length]
+        """
+        sequence = sequence.long()
+
+        # Get logits
+        outputs = self.gpt2(input_ids=sequence[:, :-1])
+        logits = outputs.logits
+
+        # Shift the input_ids and mask to the right for next token prediction
+        shifted_input_ids = sequence[:, 1:]
+        shifted_mask = mask[:, 1:] if mask is not None else None
+
+        # Compute loss
+        loss = F.cross_entropy(
+            logits.reshape(-1, self.config.vocab_size), shifted_input_ids.reshape(-1)
+        )
+
+        return logits, loss
