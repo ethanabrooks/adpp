@@ -259,18 +259,18 @@ class GPT(nn.Module):
         # x = self.drop(token_embeddings + position_embeddings)
         x = self.gpt2_model(inputs_embeds=token_embeddings).last_hidden_state
         ## [ B x T x embedding_dim ]
-        x = self.ln_f(x)
+        # x = self.ln_f(x)
         # x = self.mlp(x.view(b, -1))
-        x = x.reshape(b, t, -1)
+        # x = x.reshape(b, t, -1)
 
         ## [ (B * T' / transition_dim) x transition_dim x embedding_dim ]
-        x_pad, n_pad = self.pad_to_full_observation(x)
+        # x_pad, n_pad = self.pad_to_full_observation(x)
         ## [ (B * T' / transition_dim) x transition_dim x (vocab_size + 1) ]
-        logits = self.head2(x_pad)
+        logits = self.head2(x)
         ## [ B x T' x (vocab_size + 1) ]
-        logits = logits.reshape(b, t + n_pad, self.vocab_size + 1)
+        # logits = logits.reshape(b, t + n_pad, self.vocab_size + 1)
         ## [ B x T x (vocab_size + 1) ]
-        logits = logits[:, :t]
+        # logits = logits[:, :t]
 
         loss = F.cross_entropy(
             logits.reshape(-1, logits.size(-1)),
