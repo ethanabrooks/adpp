@@ -156,7 +156,7 @@ def train_with_envs(
             weights = dataset.weights(sequence.shape, **weights_args)
 
             # data = sequence[:, :-1].t()
-            logits, loss = net.forward(sequence)
+            logits, loss = net.forward(sequence, mask, weights)
             # ntokens = logits.size(-1)
             # targets = sequence[:, 1:].t()
             # output_flat = logits.view(-1, ntokens)

@@ -355,7 +355,6 @@ class GPT(nn.Module):
                 mask = mask[:, 1:].contiguous()
                 loss = (loss * mask.view(-1)).mean()
                 # if inputs[mask == 1].unique().numel() > 1:
-                breakpoint()
 
         return logits, loss
 
