@@ -1,4 +1,5 @@
 import grid_world.ad
+from data import Step
 from grid_world.value_iteration import ValueIteration
 from pretty import console
 
@@ -9,11 +10,13 @@ class Data(grid_world.ad.Data):
         for t, (V, Pi) in enumerate(
             (grid_world.value_iteration(**kwargs, n_rounds=self.n_rounds))
         ):
-            step, dones = grid_world.get_trajectories(Pi=Pi, n_episodes=self.n_episodes)
-            console.log(
-                f"Round: {t}. Reward: {step.rewards.sum(-1).mean().item():.2f}. Value: {V.mean().item():.2f}."
+            g, s, a, r, d = grid_world.get_trajectories(
+                Pi=Pi, n_episodes=self.n_episodes
             )
-        yield step, dones
+            console.log(
+                f"Round: {t}. Reward: {r.sum(-1).mean().item():.2f}. Value: {V.mean().item():.2f}."
+            )
+        yield Step(tasks=g, observations=s, actions=a, rewards=r), d
 
     @property
     def episodes_per_rollout(self):

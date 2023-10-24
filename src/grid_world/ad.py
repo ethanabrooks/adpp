@@ -310,21 +310,19 @@ class Data(data.Data):
     ):
         x, y = states.T
 
-        fig, ax = plt.subplots(figsize=(8, 6))
-
         # Using indices as the parameter
         t = np.arange(len(x))
 
         # Create splines for x(t) and y(t)
-        if len(x) > 1:
-            sx = CubicSpline(t, x)
+        sx = CubicSpline(t, x)
+        sy = CubicSpline(t, y)
 
-            # Generate new t values
-            tnew = np.linspace(0, len(x) - 1, 300)
-            sy = CubicSpline(t, y)
+        # Generate new t values
+        tnew = np.linspace(0, len(x) - 1, 300)
 
-            ax.plot(sx(tnew), sy(tnew), "r-", label="Smoothed curve")
-            ax.plot(x, y, "bo", label="Original points")
+        fig, ax = plt.subplots(figsize=(8, 6))
+        ax.plot(sx(tnew), sy(tnew), "r-", label="Smoothed curve")
+        ax.plot(x, y, "bo", label="Original points")
 
         # Mark start (now the second state) and end of the trajectory
         plt.scatter(states[0, 0], states[0, 1], c="g", marker="^", s=150, label="Start")
