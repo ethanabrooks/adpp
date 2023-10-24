@@ -18,7 +18,7 @@ import evaluators.adpp
 import wandb
 from data import Data
 from envs.parallel.subproc_vec_env import SubprocVecEnv
-from models import GPT, NextTokenPredictor, TransformerModel
+from models import GPT
 from optimizer import configure, decay_lr
 from plot import plot_accuracy
 from pretty import Table
@@ -118,19 +118,12 @@ def train_with_envs(
     weights_args: dict,
 ) -> None:
     print("Create net... ", end="", flush=True)
-    # net = NextTokenPredictor(
-    #     # encoder=dataset.encoder,
-    #     vocab_size=dataset.n_tokens + 1,
-    #     **model_args,
-    # )
-    emsize = 200  # embedding dimension
-    d_hid = (
-        200  # dimension of the feedforward network model in ``nn.TransformerEncoder``
+    net = GPT(
+        encoder=dataset.encoder,
+        n_tokens=dataset.n_tokens,
+        step_dim=dataset.step_dim,
+        **model_args,
     )
-    nlayers = 2  # number of ``nn.TransformerEncoderLayer`` in ``nn.TransformerEncoder``
-    nhead = 2  # number of heads in ``nn.MultiheadAttention``
-    dropout = 0.2  # dropout probability
-    net = TransformerModel(dataset.n_tokens + 1, emsize, nhead, d_hid, nlayers, dropout)
     if load_path is not None:
         load(load_path, net, run)
     net = net.cuda()
@@ -162,13 +155,12 @@ def train_with_envs(
             optimizer.zero_grad()
             weights = dataset.weights(sequence.shape, **weights_args)
 
-            data = sequence[:, :-1].t()
-            logits = net.forward(data)
-            ntokens = logits.size(-1)
-            targets = sequence[:, 1:].t()
-            output_flat = logits.view(-1, ntokens)
-            loss = criterion(output_flat, targets.flatten())
-            # loss =
+            # data = sequence[:, :-1].t()
+            logits, loss = net.forward(sequence)
+            # ntokens = logits.size(-1)
+            # targets = sequence[:, 1:].t()
+            # output_flat = logits.view(-1, ntokens)
+            # loss = criterion(output_flat, targets.flatten())
             if load_path is None:
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(net.parameters(), grad_norm_clip)
@@ -184,8 +176,13 @@ def train_with_envs(
             # log, tables = dataset.get_metrics(
             #     logits=logits, mask=mask, sequence=sequence, **metrics_args
             # )
-            acc = output_flat.argmax(dim=1).eq(targets.flatten())
-            acc = acc[mask[:, 1:].flatten() == 1]
+            print("******************")
+            print(logits.argmax(dim=-1))
+            print(sequence[:, 1:])
+            acc = logits.argmax(dim=-1).eq(sequence[:, 1:])
+            print(acc)
+            acc = acc[mask[:, 1:] == 1]
+            print(acc)
             acc = acc.float().mean().item()
 
             log = dict(accuracy=acc)

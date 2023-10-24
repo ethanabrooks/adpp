@@ -39,15 +39,16 @@ log_tables_interval: 5
 lr: 0.001
 metrics_args: {}
 model_args:
-  # embd_pdrop: 0.1
-  # layer_args:
-  #   causal_self_attention_args:
-  #     attn_pdrop: 0.1
-  #   resid_pdrop: 0.1
+  embd_pdrop: 0.1
+  layer_args:
+    causal_self_attention_args:
+      attn_pdrop: 0.1
+      n_head: 4
+    resid_pdrop: 0.1
   n_embd: 32
   n_head: 4
   n_layer: 4
-  # steps_per_context: 100
+  steps_per_context: 100
 n_batch: 50
 n_epochs: 2
 optimizer_config:
