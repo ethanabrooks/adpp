@@ -215,12 +215,14 @@ class Data(data.Data):
         for t, (V, Pi) in enumerate(
             (grid_world.value_iteration(**kwargs, n_rounds=self.n_rounds))
         ):
-            step, done = grid_world.get_trajectories(Pi=Pi, n_episodes=self.n_episodes)
+            g, s, a, r, d = grid_world.get_trajectories(
+                Pi=Pi, n_episodes=self.n_episodes
+            )
             console.log(
-                f"Round: {t}. Reward: {step.rewards.sum(-1).mean().item():.2f}. Value: {V.mean().item():.2f}."
+                f"Round: {t}. Reward: {r.sum(-1).mean().item():.2f}. Value: {V.mean().item():.2f}."
             )
             if t % self.yield_every == 0:
-                yield step, done
+                yield Step(tasks=g, observations=s, actions=a, rewards=r), d
 
     def index_1d_to_2d(self, index):
         row = index // self.steps_per_row
@@ -268,8 +270,7 @@ class Data(data.Data):
         for (name, pred), (name2, tgt), (name3, mask) in iterator:
             assert name == name2 == name3
             total_accuracy = (pred == tgt)[mask.bool()]
-            if total_accuracy.numel() > 0:
-                acc[f"(total) {name} accuracy"] = total_accuracy
+            acc[f"(total) {name} accuracy"] = total_accuracy
 
         table = defaultdict(list)
         for i in range(seq_len):
