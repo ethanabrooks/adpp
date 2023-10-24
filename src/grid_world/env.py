@@ -34,17 +34,15 @@ class Env(GridWorld, Env):
         [s] = self.current_state
         self.t = 0
         distance = torch.abs(self.get_task() - s).sum()
-        tail_length = (
-            0 if self.terminate_on_goal else (self.episode_length - distance - 1)
-        )
         if self.dense_reward:
-            descending = list(range(-distance, 1))
-            self.optimal = descending + [0.0] * tail_length
+            descending = list(range(-distance, 0))
+            self.optimal = descending + [0.0] * (self.episode_length - distance)
         else:
             self.optimal = (
                 [0.0] * distance
                 + [1.0]
-                + [0.0 if self.absorbing_state else 1.0] * tail_length
+                + [0.0 if self.absorbing_state else 1.0]
+                * (self.episode_length - distance - 1)
             )
         return s.numpy()
 
@@ -52,8 +50,7 @@ class Env(GridWorld, Env):
         if isinstance(action, int):
             action = torch.tensor([action])
         action = action.reshape(1)
-        t = torch.tensor([self.t])
-        self.current_state, [r], d, i = self.step_fn(self.current_state, action, t)
+        self.current_state, [r], d, i = self.step_fn(self.current_state, action, self.t)
         [s] = self.current_state
         self.t += 1
         if d:
