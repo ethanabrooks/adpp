@@ -197,7 +197,6 @@ class Data(data.Data):
             grid_size=self.grid_size,
             heldout_goals=self.heldout_goals,
             seed=seed,
-            terminate_on_goal=self.grid_world.terminate_on_goal,
             use_heldout_goals=use_heldout_tasks,
         )
 
