@@ -6,7 +6,7 @@ import torch.nn as nn
 from torch import Tensor, nn
 from torch.nn import TransformerEncoder, TransformerEncoderLayer
 from torch.nn import functional as F
-from transformers import GPT2Config, GPT2LMHeadModel, GPT2Model, GPT2Tokenizer
+from transformers import GPT2Config, GPT2LMHeadModel, GPT2Model
 
 from encoder import Encoder
 
