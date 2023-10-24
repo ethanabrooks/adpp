@@ -118,6 +118,7 @@ class Data(data.Data):
 
         _, self.steps_per_row, _ = data.shape
         self.unpadded_data = data
+        self.unpadded_mask = mask
         assert [*self.unpadded_data.shape] == [
             n_data,
             self.steps_per_row,
@@ -130,7 +131,8 @@ class Data(data.Data):
 
     def __getitem__(self, idx):
         item = self.unpadded_data[idx].flatten()
-        return item, torch.ones_like(item)
+        mask = self.unpadded_mask[idx].flatten()
+        return item, mask
         # i, j = self.index_1d_to_2d(idx)
         # j += 1
         # jj = slice(j, j + self.steps_per_context)

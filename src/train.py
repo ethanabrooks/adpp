@@ -180,7 +180,7 @@ def train_with_envs(
             print(logits.argmax(dim=-1))
             print(sequence[:, 1:])
             acc = logits.argmax(dim=-1).eq(sequence[:, 1:])
-            print(acc)
+            # print(acc)
             acc = acc[mask[:, 1:] == 1]
             print(acc)
             acc = acc.float().mean().item()
