@@ -253,7 +253,8 @@ def train_with_envs(
 
 
 def save(run: Run, net: GPT):
-    if run is not None:
-        savepath = os.path.join(run.dir, MODEL_FNAME)
-        torch.save(net.state_dict(), savepath)
-        wandb.save(savepath)
+    pass
+    # if run is not None:
+    #     savepath = os.path.join(run.dir, MODEL_FNAME)
+    #     torch.save(net.state_dict(), savepath)
+    #     wandb.save(savepath)
