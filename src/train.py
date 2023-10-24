@@ -173,19 +173,19 @@ def train_with_envs(
                 param_group.update(lr=decayed_lr)
 
             # log
-            # log, tables = dataset.get_metrics(
-            #     logits=logits, mask=mask, sequence=sequence, **metrics_args
-            # )
-            print("******************")
-            print(logits.argmax(dim=-1))
-            print(sequence[:, 1:])
-            acc = logits.argmax(dim=-1).eq(sequence[:, 1:])
+            log, tables = dataset.get_metrics(
+                logits=logits, mask=mask, sequence=sequence, **metrics_args
+            )
+            # print("******************")
+            # print(logits.argmax(dim=-1))
+            # print(sequence[:, 1:])
+            # acc = logits.argmax(dim=-1).eq(sequence[:, 1:])
+            # # print(acc)
+            # acc = acc[mask[:, 1:] == 1]
             # print(acc)
-            acc = acc[mask[:, 1:] == 1]
-            print(acc)
-            acc = acc.float().mean().item()
+            # acc = acc.float().mean().item()
 
-            log = dict(accuracy=acc)
+            # log = dict(accuracy=acc)
             counter.update(dict(**log, loss=loss.item(), n_logs=1))
             if t % log_interval == 0:
                 n_logs = counter["n_logs"]

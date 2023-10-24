@@ -259,7 +259,8 @@ class Data(data.Data):
         for (name, pred), (name2, tgt), (name3, mask) in iterator:
             assert name == name2 == name3
             total_accuracy = (pred == tgt)[mask.bool()]
-            acc[f"(total) {name} accuracy"] = total_accuracy
+            if total_accuracy.numel() > 0:
+                acc[f"(total) {name} accuracy"] = total_accuracy
 
         table = defaultdict(list)
         for i in range(seq_len):
