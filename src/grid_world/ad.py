@@ -129,13 +129,16 @@ class Data(data.Data):
         self.min_value = self.data.min().item()
 
     def __getitem__(self, idx):
-        i, j = self.index_1d_to_2d(idx)
-        j += 1
-        jj = slice(j, j + self.steps_per_context)
-        return self.data[i, jj].view(-1), self.mask[i, jj].view(-1)
+        item = self.unpadded_data[idx].flatten()
+        return item, torch.ones_like(item)
+        # i, j = self.index_1d_to_2d(idx)
+        # j += 1
+        # jj = slice(j, j + self.steps_per_context)
+        # return self.unpadded_data[i, jj].view(-1), self.mask[i, jj].view(-1)
 
     def __len__(self):
-        return self.n_data * self.steps_per_row
+        return len(self.unpadded_data)
+        # return self.n_data * self.steps_per_row
 
     @property
     def dims(self):

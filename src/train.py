@@ -6,6 +6,7 @@ from typing import Optional
 
 import pandas as pd
 import torch
+import torch.nn as nn
 from matplotlib import pyplot as plt
 from rich import print
 from torch.utils.data import DataLoader
@@ -17,7 +18,7 @@ import evaluators.adpp
 import wandb
 from data import Data
 from envs.parallel.subproc_vec_env import SubprocVecEnv
-from models import GPT, NextTokenPredictor
+from models import GPT, NextTokenPredictor, TransformerModel
 from optimizer import configure, decay_lr
 from plot import plot_accuracy
 from pretty import Table
@@ -117,11 +118,19 @@ def train_with_envs(
     weights_args: dict,
 ) -> None:
     print("Create net... ", end="", flush=True)
-    net = NextTokenPredictor(
-        # encoder=dataset.encoder,
-        vocab_size=dataset.n_tokens + 1,
-        **model_args,
+    # net = NextTokenPredictor(
+    #     # encoder=dataset.encoder,
+    #     vocab_size=dataset.n_tokens + 1,
+    #     **model_args,
+    # )
+    emsize = 200  # embedding dimension
+    d_hid = (
+        200  # dimension of the feedforward network model in ``nn.TransformerEncoder``
     )
+    nlayers = 2  # number of ``nn.TransformerEncoderLayer`` in ``nn.TransformerEncoder``
+    nhead = 2  # number of heads in ``nn.MultiheadAttention``
+    dropout = 0.2  # dropout probability
+    net = TransformerModel(dataset.n_tokens + 1, emsize, nhead, d_hid, nlayers, dropout)
     if load_path is not None:
         load(load_path, net, run)
     net = net.cuda()
@@ -137,6 +146,7 @@ def train_with_envs(
     adpp_log = {}
     tick = time.time()
     log_table = Table()
+    criterion = nn.CrossEntropyLoss()
 
     for e in range(n_epochs):
         # Split the dataset into train and test sets
@@ -151,7 +161,14 @@ def train_with_envs(
             net.train()
             optimizer.zero_grad()
             weights = dataset.weights(sequence.shape, **weights_args)
-            logits, loss = net.forward(sequence, mask)
+
+            data = sequence[:, :-1].t()
+            logits = net.forward(data)
+            ntokens = logits.size(-1)
+            targets = sequence[:, 1:].t()
+            output_flat = logits.view(-1, ntokens)
+            loss = criterion(output_flat, targets.flatten())
+            # loss =
             if load_path is None:
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(net.parameters(), grad_norm_clip)
@@ -164,9 +181,14 @@ def train_with_envs(
                 param_group.update(lr=decayed_lr)
 
             # log
-            log, tables = dataset.get_metrics(
-                logits=logits, mask=mask, sequence=sequence, **metrics_args
-            )
+            # log, tables = dataset.get_metrics(
+            #     logits=logits, mask=mask, sequence=sequence, **metrics_args
+            # )
+            acc = output_flat.argmax(dim=1).eq(targets.flatten())
+            acc = acc[mask[:, 1:].flatten() == 1]
+            acc = acc.float().mean().item()
+
+            log = dict(accuracy=acc)
             counter.update(dict(**log, loss=loss.item(), n_logs=1))
             if t % log_interval == 0:
                 n_logs = counter["n_logs"]
@@ -184,40 +206,40 @@ def train_with_envs(
 
                 # test
                 log_t = t // log_interval
-                if False:
-                    adpp_log, fig = evaluate(
-                        dataset=dataset,
-                        envs=adpp_envs,
-                        evaluator=evaluators.adpp.Evaluator(**adpp_args),
-                        net=net,
-                        section="eval AD++",
-                        **evaluate_args,
-                    )
-                    log.update(fig)
-                    log_table.print_header(row)
-                if False:
-                    ad_log, fig = evaluate(
-                        dataset=dataset,
-                        envs=ad_envs,
-                        evaluator=evaluators.ad.Evaluator(),
-                        net=net,
-                        section="eval AD",
-                        **evaluate_args,
-                    )
-                    log.update(fig)
-                    log_table.print_header(row)
+                # if False:
+                #     adpp_log, fig = evaluate(
+                #         dataset=dataset,
+                #         envs=adpp_envs,
+                #         evaluator=evaluators.adpp.Evaluator(**adpp_args),
+                #         net=net,
+                #         section="eval AD++",
+                #         **evaluate_args,
+                #     )
+                #     log.update(fig)
+                #     log_table.print_header(row)
+                # if False:
+                #     ad_log, fig = evaluate(
+                #         dataset=dataset,
+                #         envs=ad_envs,
+                #         evaluator=evaluators.ad.Evaluator(),
+                #         net=net,
+                #         section="eval AD",
+                #         **evaluate_args,
+                #     )
+                #     log.update(fig)
+                #     log_table.print_header(row)
 
                 log.update(adpp_log)
                 log.update(ad_log)
 
-                if log_t % log_tables_interval == 0:
+                # if log_t % log_tables_interval == 0:
 
-                    def get_figures():
-                        for name, xs in tables.items():
-                            fig = plot_accuracy(*xs, name=name, ymin=0, ymax=1)
-                            yield f"train/{name}", wandb.Image(fig)
+                #     def get_figures():
+                #         for name, xs in tables.items():
+                #             fig = plot_accuracy(*xs, name=name, ymin=0, ymax=1)
+                #             yield f"train/{name}", wandb.Image(fig)
 
-                    log.update(dict(get_figures()))
+                #     log.update(dict(get_figures()))
 
                 if run is not None:
                     wandb.log(log, step=step)
